@@ -1,0 +1,46 @@
+Các thành phần chính chạy trên Master Node bao gồm:
+1. kube-apiserver
+
+Thành phần trung tâm của Control Plane.
+Cung cấp REST API để tất cả các thành phần khác (kubectl, scheduler, controller manager, worker nodes…) giao tiếp với cluster.
+Xác thực (authentication), ủy quyền (authorization), và validate các request.
+Là frontend cho etcd.
+
+2. etcd
+
+Key-value store phân tán (distributed reliable key-value store).
+Lưu trữ toàn bộ trạng thái của cluster (tất cả các object: Pod, Deployment, Service, Secret, ConfigMap…).
+Chỉ Master Node mới được phép ghi trực tiếp vào etcd (thông qua kube-apiserver).
+Thường được deploy dưới dạng cluster 3 hoặc 5 node để đảm bảo HA.
+
+3. kube-scheduler
+
+Theo dõi các Pod mới được tạo mà chưa được gán Node (nodeName rỗng).
+Đánh giá các Node theo các tiêu chí (resource requests, taints/tolerations, node affinity, pod affinity/anti-affinity, …)
+Quyết định Pod sẽ chạy trên Node nào → ghi thông tin vào etcd qua API server.
+
+4. kube-controller-manager
+
+Chạy nhiều controller trong một process duy nhất (để giảm tải). Các controller quan trọng:
+ReplicationController / ReplicaSet Controller
+Deployment Controller
+StatefulSet Controller
+DaemonSet Controller
+Job & CronJob Controller
+Namespace Controller
+ServiceAccount Controller
+Endpoints / EndpointSlice Controller
+Node Controller (theo dõi trạng thái Node)
+v.v.
+
+Mỗi controller liên tục theo dõi trạng thái thực tế (actual state) so với trạng thái mong muốn (desired state) và thực hiện reconcile.
+
+5. cloud-controller-manager (chỉ có khi dùng cloud provider)
+
+Chứa các controller phụ thuộc vào cloud cụ thể:
+Node Controller
+Route Controller
+Service Controller (tạo LoadBalancer)
+Volume Controller
+
+Tách riêng để Kubernetes core không phụ thuộc vào bất kỳ cloud nào.
