@@ -1,0 +1,71 @@
+                              KUBERNETES CLUSTER
+══════════════════════════════════════════════════════════════════════════
+                              CONTROL PLANE (Master Nodes)
+                             ┌─────────────────────────────────────┐
+                             │           High Availability: 3+ nodes│
+                             │  (Taint: NoSchedule / NoExecute)    │
+                             └───────────────────▲─────────────────┘
+                                                 │
+        ┌───────────────────────┐                │                ┌───────────────────────┐
+        │        Clients         │                │                │      External Tools   │
+        │  • kubectl             │                │                │  • Dashboard          │
+        │  • Lens, k9s           │                │                │  • ArgoCD, Flux       │
+        │  • CI/CD (GitLab,...)  ├────────────────┘                │  • Monitoring         │
+        └───────▲───────────────┘                                   └──────────▲────────────┘
+                │ HTTPS 443                                                  │
+                ▼                                                             ▼
+        ┌───────────────────────────────┐                     ┌────────────────────────────┐
+        │         kube-apiserver         │                     │           etcd cluster     │
+        │  - Authentication (OIDC,JWT)  │◄──────────────────►│  (3 hoặc 5 node, Raft)     │
+        │  - Authorization (RBAC)        │   chỉ giao tiếp     │  - Lưu toàn bộ state       │
+        │  - Admission Controllers       │   qua API server    │  - Watch bằng gRPC         │
+        │  - Object validation & mutate  │                     └────────────▲───────────────┘
+        └───────────────▲─────────────────┘                              │
+                        │                                            │
+        ┌───────────────┼──────────────────────┐                     │
+        │               │                      │                     │
+        │               │                      │                     │
+        ▼               ▼                      ▼                     │
+┌───────────────┐ ┌───────────────┐   ┌─────────────────────┐      │
+│ kube-scheduler│ │ kube-controller│   │ cloud-controller-mgr│      │
+│  - Watch Pod   │ │   -manager     │   │ (AWS/GCP/Azure/...) │      │
+│  - Filter      │ │  • Replicaset  │   │  • Node controller  │      │
+│  - Score       │ │  • Deployment  │   │  • Route controller │      │
+│  - Bind → API  │ │  • StatefulSet │   │  • Service (LB)     │      │
+└───────────────┘ │  • DaemonSet   │   │  • Volume           │      │
+                  │  • Job/CronJob │   └─────────────────────┘      │
+                  │  • Node        │                              │
+                  │  • Endpoint    │                              │
+                  │  • Namespace    │                              │
+                  └─────────────────┘                              │
+                                                                   │
+═══════════════════════════════════════════════════════════════════│════════════════════════════════
+                                      │                                    ▼
+                                      │                               WORKER NODES
+                                      │                          ┌───────────────────────────────┐
+                                      │                          │        Worker Node 1          │
+                                      │                          ├───────────────────────────────┤
+                                      │                          │ ┌───────────────┐             │
+                                      │ kubelet ◄────────────────┘ │  kube-proxy   │             │
+                                      │ (gRPC + HTTPS)            │ (iptables/nft │             │
+                                      │                          │  hoặc IPVS)   │             │
+                                      │                          └───────▲───────┘             │
+                                      │                                  │                   │
+                                      │                          ┌───────┴───────┐   ┌────────┴────────┐
+                                      │                          │   Container   │   │   Container     │
+                                      │                          │   Runtime     │   │   Runtime       │
+                                      │                          │ (containerd,  │   │ (containerd,    │
+                                      │                          │  CRI-O)       │   │  CRI-O)         │
+                                      │                          └───────▲───────┘   └──────▲──────────┘
+                                      │                                  │               │
+                                      ▼                                  ▼               ▼
+                             ┌─────────────────┐              ┌─────────────┐   ┌──────────────┐
+                             │   Pod           │              │    Pod      │   │     Pod      │
+                             │  ┌─────────┐    │              │ ┌─────────┐   │   │ ┌──────────┐ │
+                             │  │Containe │    │              │ │Containe │   │   │ │Container │ │
+                             │  │   r     │    │              │ │   r     │   │   │ │    r     │ │
+                             │  └─────────┘    │              │ └─────────┘   │   │ └──────────┘ │
+                             └─────────────────┘              └─────────────┘   └──────────────┘
+
+CNI Plugin (chạy trên tất cả node): Calico / Cilium / Flannel / Weave / AWS VPC CNI…
+→ Tạo Pod network, thực hiện Service (ClusterIP, NodePort, LoadBalancer), NetworkPolicy
