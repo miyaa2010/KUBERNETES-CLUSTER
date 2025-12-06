@@ -1,0 +1,10 @@
+Luồng tạo một Pod đơn giản
+
+kubectl apply -f deployment.yaml
+→ kube-apiserver → lưu vào etcd
+kube-controller-manager (Deployment → ReplicaSet → Pod)
+→ tạo Pod object → etcd
+kube-scheduler thấy Pod chưa có node → chọn worker node → bind → etcd
+kubelet trên worker node nhận event từ apiserver → gọi container runtime
+container runtime kéo image → khởi tạo container → báo lại kubelet → NodeStatus Ready
+kube-proxy cập nhật rule iptables/IPVS để Service trỏ đến Pod
