@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: production
+  labels:
+    app: nginx
+spec:
+  replicas: 5                              # Số Pod mong muốn
+  strategy:
+    type: RollingUpdate                    # Chiến lược update
+    rollingUpdate:
+      maxSurge: 1                          # Được tạo thêm tối đa bao nhiêu Pod khi update
+      maxUnavailable: 1                    # Được phép mất tối đa bao nhiêu Pod khi update
+  selector:
+    matchLabels:
+      app: nginx                           # Bắt buộc phải khớp với label của Pod template
+  template:                                # Blueprint của Pod
+    metadata:
+      labels:
+        app: nginx
+        version: v1
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.27-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:                   # Kiểm tra container còn sống không
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30        # Chờ 30s mới bắt đầu kiểm tra
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:                  # Kiểm tra container đã sẵn sàng nhận traffic chưa
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5

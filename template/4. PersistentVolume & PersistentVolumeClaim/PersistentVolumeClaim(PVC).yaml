@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: database
+spec:
+  accessModes:
+    - ReadWriteOnce               # Chỉ 1 Pod gắn RWO
+  resources:
+    requests:
+      storage: 50Gi              # Yêu cầu dung lượng
+  storageClassName: ""           # Để trống nếu dùng PV static
